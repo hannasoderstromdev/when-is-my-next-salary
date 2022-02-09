@@ -19,6 +19,11 @@ enum Weekday {
   SATURDAY = "Saturday",
 }
 
+enum SalaryIteration {
+  MONTHLY = "Monthly",
+  WEEKLY = "Weekly",
+}
+
 const months = [
   "January",
   "February",
@@ -34,27 +39,21 @@ const months = [
   "December",
 ];
 
-class App {
-  readonly SALARY_ITERATION = 12;
+export class App {
+  readonly SALARY_ITERATIONS: SalaryIteration = SalaryIteration.MONTHLY;
   readonly SALARY_DATE = 25;
-  readonly SALARY_YEAR = 2022;
+  SALARY_YEAR = 2022;
   readonly DATE_FORMAT: Intl.DateTimeFormatOptions = {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   };
 
-  getShortDate(date: Date): string {
-    const shortDate = date.toLocaleDateString("en-US", this.DATE_FORMAT);
-
-    // const shortDate = `${date.getDay().toString()}/${(
-    //   date.getMonth() + 1
-    // ).toString()}/${date.getFullYear().toString()}`;
-
-    return shortDate;
+  private getShortDate(date: Date): string {
+    return date.toLocaleDateString("en-US", this.DATE_FORMAT);
   }
 
-  getWeekDay(date: Date): Weekday {
+  private getWeekDay(date: Date): Weekday {
     const weekDays = [
       Weekday.SUNDAY,
       Weekday.MONDAY,
@@ -68,10 +67,10 @@ class App {
     return weekDays[date.getDay()];
   }
 
-  generatePayouts(): Payday[] {
+  private generatePayoutsMonthly(): Payday[] {
     const payouts = [];
 
-    for (let i = 0; i < this.SALARY_ITERATION; i++) {
+    for (let i = 0; i < 12; i++) {
       const payday = new Date(this.SALARY_YEAR, i, this.SALARY_DATE);
 
       const dayOfTheWeek = payday.getDay();
@@ -80,8 +79,6 @@ class App {
         const holiday = sweden2022.find((holiday) => {
           return holiday.date === this.getShortDate(payday);
         });
-
-        console.log(this.getShortDate(payday));
 
         payouts.push({
           date: this.getShortDate(payday),
@@ -114,16 +111,57 @@ class App {
     return payouts;
   }
 
-  getNextPayday(): Payday | {} {
-    const today = new Date();
+  private generatePayoutsWeekly(): Payday[] {
+    const payouts = [];
 
-    const payouts = this.generatePayouts();
+    // Find first Friday of the current year
+    // If Friday is a holiday, check Thursday
+    // If Thursday is a holiday, check Wednesday,
+    // If Wednesday is a holiday, check Tuesday,
+    // if Tuesday is a holiday, check Monday
+    // If Monday is a holiday, go to next Friday
 
-    return (
-      payouts.find(
-        (payout) => new Date(payout.date).getMonth() === today.getMonth()
-      ) || {}
-    );
+    for (let week = 1; week <= 52; week++) {
+      const payout = {
+        date: "",
+        weekDay: Weekday.FRIDAY,
+        weekEnd: false,
+        isHoliday: false,
+        holidayName: "",
+        payday: "",
+      };
+      payouts.push(payout);
+    }
+
+    return payouts;
+  }
+
+  setSalaryYear(year: number): void {
+    const currentYear = new Date().getFullYear();
+
+    if (year < 1900 || year > currentYear) {
+      throw new Error(`Please enter a year between 1900 and ${currentYear}`);
+    }
+
+    this.SALARY_YEAR = year;
+  }
+
+  generatePayoutsForYear(): Payday[] {
+    return this.SALARY_ITERATIONS === SalaryIteration.MONTHLY
+      ? this.generatePayoutsMonthly()
+      : this.generatePayoutsWeekly();
+  }
+
+  getNextPayday(): Payday | void {
+    const payouts = this.generatePayoutsForYear();
+
+    const currentMonth = new Date().getMonth();
+
+    if (payouts.length > 0) {
+      return payouts.find(
+        (payout) => new Date(payout.date).getMonth() === currentMonth
+      );
+    }
   }
 }
 
