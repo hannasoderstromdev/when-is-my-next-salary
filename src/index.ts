@@ -1,4 +1,4 @@
-import { sweden2022 } from "./sweden2022";
+import { sweden2022, Holiday } from "./sweden2022";
 
 interface Payday {
   date: string;
@@ -19,7 +19,7 @@ enum Weekday {
   SATURDAY = "Saturday",
 }
 
-enum SalaryIteration {
+export enum SalaryIteration {
   MONTHLY = "Monthly",
   WEEKLY = "Weekly",
 }
@@ -40,7 +40,7 @@ const months = [
 ];
 
 export class App {
-  readonly SALARY_ITERATIONS: SalaryIteration = SalaryIteration.MONTHLY;
+  SALARY_ITERATIONS: SalaryIteration = SalaryIteration.MONTHLY;
   readonly SALARY_DATE = 25;
   SALARY_YEAR = 2022;
   readonly DATE_FORMAT: Intl.DateTimeFormatOptions = {
@@ -114,14 +114,31 @@ export class App {
   private generatePayoutsWeekly(): Payday[] {
     const payouts = [];
 
-    // Find first Friday of the current year
-    // If Friday is a holiday, check Thursday
     // If Thursday is a holiday, check Wednesday,
     // If Wednesday is a holiday, check Tuesday,
     // if Tuesday is a holiday, check Monday
     // If Monday is a holiday, go to next Friday
-
     for (let week = 1; week <= 52; week++) {
+      const currentDate = new Date(this.SALARY_YEAR, 0, 1);
+
+      // Find first Friday of the current year
+      while (currentDate.getDay() !== 4) {
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      let holiday: boolean | undefined | Holiday = true;
+
+      for (let i = 1; i < sweden2022.length; i++) {
+        holiday = sweden2022.find((holiday) => {
+          const dateToCompare = new Date(currentDate.getDate() - 1);
+          return holiday.date === this.getShortDate(dateToCompare);
+        });
+      }
+
+      // If Friday is a holiday, check Thursday
+      if (holiday) {
+      }
+
       const payout = {
         date: "",
         weekDay: Weekday.FRIDAY,
@@ -144,6 +161,10 @@ export class App {
     }
 
     this.SALARY_YEAR = year;
+  }
+
+  setSalaryIterations(iteration: SalaryIteration) {
+    this.SALARY_ITERATIONS = iteration;
   }
 
   generatePayoutsForYear(): Payday[] {
